@@ -1,8 +1,8 @@
 package com.nablarch.example.app.web.action;
 
+import com.nablarch.example.app.test.http.YamlRestTest;
+import com.nablarch.example.app.test.http.YamlRestTestSupport;
 import nablarch.fw.web.HttpResponse;
-import nablarch.test.core.http.RestTestSupport;
-import nablarch.test.junit5.extension.http.RestTest;
 import org.junit.jupiter.api.Test;
 
 import static com.jayway.jsonassert.JsonAssert.with;
@@ -14,9 +14,9 @@ import static org.hamcrest.Matchers.hasSize;
 /**
  * {@link ClientAction}のテストクラス
  */
-@RestTest
+@YamlRestTest
 class ClientActionTest {
-    RestTestSupport support;
+    YamlRestTestSupport support;
 
     /**
      * 検索条件なしで顧客が検索できること

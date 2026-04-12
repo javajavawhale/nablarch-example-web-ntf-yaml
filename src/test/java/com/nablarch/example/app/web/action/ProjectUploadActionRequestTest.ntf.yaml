@@ -1,0 +1,242 @@
+setUpDb:
+  SETUP_TABLE=SYSTEM_ACCOUNT: #ListMap
+    - USER_ID: "105"
+      LOGIN_ID: "10000001"
+      USER_PASSWORD: "nLf7+E3ObKARUBw+6bvSRyfJ9Cy0HCcsa0DqZIE93K0="
+      ADMIN_FLAG: "1"
+      USER_ID_LOCKED: "0"
+      PASSWORD_EXPIRATION_DATE: "20170410"
+      FAILED_COUNT: "0"
+      EFFECTIVE_DATE_FROM: "20130802"
+      EFFECTIVE_DATE_TO: "20170404"
+      LAST_LOGIN_DATE_TIME: ""
+      VERSION: "0"
+    - USER_ID: "106"
+      LOGIN_ID: "10000002"
+      USER_PASSWORD: "nLf7+E3ObKARUBw+6bvSRyfJ9Cy0HCcsa0DqZIE93K0="
+      ADMIN_FLAG: "0"
+      USER_ID_LOCKED: "0"
+      PASSWORD_EXPIRATION_DATE: "20170410"
+      FAILED_COUNT: "0"
+      EFFECTIVE_DATE_FROM: "20130802"
+      EFFECTIVE_DATE_TO: "20170404"
+      LAST_LOGIN_DATE_TIME: ""
+      VERSION: "0"
+
+  SETUP_TABLE=USERS: #ListMap
+    - USER_ID: "105"
+      KANJI_NAME: "管理者ユーザ１"
+      KANA_NAME: "カンリシャイチ"
+    - USER_ID: "106"
+      KANJI_NAME: "一般ユーザ１"
+      KANA_NAME: "イッパンイチ"
+
+  SETUP_TABLE=PROJECT: #ListMap
+    - PROJECT_ID: ~
+      PROJECT_NAME: ~
+      PROJECT_TYPE: ~
+      PROJECT_CLASS: ~
+      PROJECT_START_DATE: ~
+      PROJECT_END_DATE: ~
+      CLIENT_ID: ~
+      PROJECT_MANAGER: ~
+      PROJECT_LEADER: ~
+      USER_ID: ~
+      NOTE: ~
+      SALES: ~
+      COST_OF_GOODS_SOLD: ~
+      SGA: ~
+      ALLOCATION_OF_CORP_EXPENSES: ~
+      VERSION: ~
+  SETUP_TABLE=INDUSTRY: #ListMap
+    - INDUSTRY_CODE: "01"
+      INDUSTRY_NAME: "農業"
+
+  SETUP_TABLE=CLIENT: #ListMap
+    - CLIENT_ID: "1"
+      CLIENT_NAME: "テスト顧客名"
+      INDUSTRY_CODE: "01"
+
+indexNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "プロジェクト一括登録画面表示"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "200"
+      expectedMessageId: ""
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/projectUpload/create.jsp"
+
+  LIST_MAP=userContext: #ListMap
+    - REQUEST_ID: "index"
+      USER_ID: "105"
+      HTTP_METHOD: "GET"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+
+indexForbidden:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "権限チェックエラー発生"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "403"
+      expectedMessageId: ""
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/common/errorPages/permissionError.jsp"
+
+  LIST_MAP=userContext: #ListMap
+    - REQUEST_ID: "index"
+      USER_ID: "106"
+      HTTP_METHOD: "GET"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+
+uploadNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "ファイルアップロード"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "200"
+      expectedMessageId: ""
+      expectedTable: "1"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/projectUpload/create.jsp"
+
+  LIST_MAP=userContext: #ListMap
+    - REQUEST_ID: "upload"
+      USER_ID: "105"
+      HTTP_METHOD: "POST"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+      uploadFile: "${attach:./src/test/resources/data/requestTest/uploadNormal.csv}"
+
+  EXPECTED_TABLE[1]=PROJECT: #ListMap
+    - PROJECT_NAME: "プロジェクト一括登録"
+      PROJECT_TYPE: "development"
+      PROJECT_CLASS: "s"
+      PROJECT_START_DATE: "null"
+      PROJECT_END_DATE: "null"
+      CLIENT_ID: "1"
+      PROJECT_MANAGER: "マネージャ"
+      PROJECT_LEADER: "リーダ"
+      USER_ID: "105"
+      NOTE: ""
+      SALES: "null"
+      COST_OF_GOODS_SOLD: "null"
+      SGA: "null"
+      ALLOCATION_OF_CORP_EXPENSES: "null"
+      VERSION: "0"
+
+uploadAbNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "バリデーションエラー発生"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "400"
+      expectedMessageId: "errors.upload.validate"
+      expectedTable: "1"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/projectUpload/create.jsp"
+    - "no": "2"
+      description: "二重サブミットエラー発生"
+      context: "userContext"
+      isValidToken: "false"
+      expectedStatusCode: "400"
+      expectedMessageId: "errors.doubleSubmission"
+      expectedTable: "1"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/common/errorPages/doubleSubmissionError.jsp"
+    - "no": "3"
+      description: "フォーマットが不正な行がある場合（項目不足）"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "400"
+      expectedMessageId: "errors.upload.format"
+      expectedTable: "1"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/projectUpload/create.jsp"
+    - "no": "4"
+      description: "フォーマットが不正な行がある場合（囲み文字が不正）"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "400"
+      expectedMessageId: "errors.upload.format"
+      expectedTable: "1"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/projectUpload/create.jsp"
+
+  LIST_MAP=userContext: #ListMap
+    - REQUEST_ID: "upload"
+      USER_ID: "105"
+      HTTP_METHOD: "POST"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+      uploadFile: "${attach:./src/test/resources/data/requestTest/uploadAbNormal.csv}"
+    - "[no]": "2"
+      uploadFile: "${attach:./src/test/resources/data/requestTest/uploadNormal.csv}"
+    - "[no]": "3"
+      uploadFile: "${attach:./src/test/resources/data/requestTest/uploadAbNormal_formatError.csv}"
+    - "[no]": "4"
+      uploadFile: "${attach:./src/test/resources/data/requestTest/uploadAbNormal_formatError2.csv}"
+
+  EXPECTED_TABLE[1]=PROJECT: #ListMap
+    - PROJECT_NAME: ~
+      PROJECT_TYPE: ~
+      PROJECT_CLASS: ~
+      PROJECT_START_DATE: ~
+      PROJECT_END_DATE: ~
+      CLIENT_ID: ~
+      PROJECT_MANAGER: ~
+      PROJECT_LEADER: ~
+      USER_ID: ~
+      NOTE: ~
+      SALES: ~
+      COST_OF_GOODS_SOLD: ~
+      SGA: ~
+      ALLOCATION_OF_CORP_EXPENSES: ~
+      VERSION: ~
+uploadForbidden:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "権限チェックエラー発生"
+      context: "userContext"
+      isValidToken: "true"
+      expectedStatusCode: "403"
+      expectedMessageId: ""
+      expectedTable: "1"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/common/errorPages/permissionError.jsp"
+
+  LIST_MAP=userContext: #ListMap
+    - REQUEST_ID: "upload"
+      USER_ID: "106"
+      HTTP_METHOD: "POST"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+      uploadFile: ""
+
+  EXPECTED_TABLE[1]=PROJECT: #ListMap
+    - PROJECT_NAME: ~
+      PROJECT_TYPE: ~
+      PROJECT_CLASS: ~
+      PROJECT_START_DATE: ~
+      PROJECT_END_DATE: ~
+      CLIENT_ID: ~
+      PROJECT_MANAGER: ~
+      PROJECT_LEADER: ~
+      USER_ID: ~
+      NOTE: ~
+      SALES: ~
+      COST_OF_GOODS_SOLD: ~
+      SGA: ~
+      ALLOCATION_OF_CORP_EXPENSES: ~
+      VERSION: ~

@@ -1,0 +1,221 @@
+setUpDb:
+  SETUP_TABLE=PROJECT: #ListMap
+    - PROJECT_ID: ~
+      PROJECT_NAME: ~
+      PROJECT_TYPE: ~
+      PROJECT_CLASS: ~
+      PROJECT_START_DATE: ~
+      PROJECT_END_DATE: ~
+      CLIENT_ID: ~
+      PROJECT_MANAGER: ~
+      PROJECT_LEADER: ~
+      USER_ID: ~
+      NOTE: ~
+      SALES: ~
+      COST_OF_GOODS_SOLD: ~
+      SGA: ~
+      ALLOCATION_OF_CORP_EXPENSES: ~
+      VERSION: ~
+  SETUP_TABLE=SYSTEM_ACCOUNT: #ListMap
+    - USER_ID: ~
+      LOGIN_ID: ~
+      USER_PASSWORD: ~
+      ADMIN_FLAG: ~
+      USER_ID_LOCKED: ~
+      PASSWORD_EXPIRATION_DATE: ~
+      FAILED_COUNT: ~
+      EFFECTIVE_DATE_FROM: ~
+      EFFECTIVE_DATE_TO: ~
+      LAST_LOGIN_DATE_TIME: ~
+      VERSION: ~
+  SETUP_TABLE=USERS: #ListMap
+    - USER_ID: ~
+      KANJI_NAME: ~
+      KANA_NAME: ~
+indexNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "ログイン画面表示"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: ""
+      expectedStatusCode: "200"
+      expectedMessageId: ""
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/login/index.jsp"
+
+  LIST_MAP=user: #ListMap
+    - REQUEST_ID: "login"
+      USER_ID: "105"
+      HTTP_METHOD: "GET"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+
+loginGetNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "ログイン画面表示"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: ""
+      expectedStatusCode: "200"
+      expectedMessageId: ""
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/login/index.jsp"
+
+  LIST_MAP=user: #ListMap
+    - REQUEST_ID: "login"
+      USER_ID: "105"
+      HTTP_METHOD: "GET"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+
+loginPostNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "ログイン成功"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: "1"
+      expectedStatusCode: "303"
+      expectedMessageId: ""
+      expectedSearch: ""
+      forwardUri: "/action/project/index"
+
+  LIST_MAP=user: #ListMap
+    - REQUEST_ID: "login"
+      USER_ID: "105"
+      HTTP_METHOD: "POST"
+
+  SETUP_TABLE[1]=SYSTEM_ACCOUNT: #ListMap
+    - USER_ID: "105"
+      LOGIN_ID: "10000001"
+      USER_PASSWORD: "otFL835Qy984IrWKA+jEhvH6CGE/woZ8LeLy7iyp8CM="
+      ADMIN_FLAG: "0"
+      USER_ID_LOCKED: "0"
+      PASSWORD_EXPIRATION_DATE: "20170410"
+      FAILED_COUNT: "0"
+      EFFECTIVE_DATE_FROM: "20130802"
+      EFFECTIVE_DATE_TO: "20170404"
+      LAST_LOGIN_DATE_TIME: ""
+      VERSION: "0"
+
+  SETUP_TABLE[1]=USERS: #ListMap
+    - USER_ID: "105"
+      KANJI_NAME: "一般ユーザ１"
+      KANA_NAME: "イッパンイチ"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+      loginId: "10000001"
+      userPassword: "pass123-"
+
+  LIST_MAP=userContext1: #ListMap
+    - name: "userId"
+      get: "105"
+    - name: "kanjiName"
+      get: "一般ユーザ１"
+
+loginAbNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "パスワード未入力"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: "1"
+      expectedStatusCode: "403"
+      expectedMessageId: "errors.login"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/login/index.jsp"
+    - "no": "2"
+      description: "パスワード間違い"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: "1"
+      expectedStatusCode: "403"
+      expectedMessageId: "errors.login"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/login/index.jsp"
+    - "no": "3"
+      description: "アカウントロック"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: "3"
+      expectedStatusCode: "403"
+      expectedMessageId: "errors.login"
+      expectedSearch: ""
+      forwardUri: "/WEB-INF/view/login/index.jsp"
+
+  LIST_MAP=user: #ListMap
+    - REQUEST_ID: "login"
+      USER_ID: "105"
+      HTTP_METHOD: "POST"
+
+  SETUP_TABLE[1]=SYSTEM_ACCOUNT: #ListMap
+    - USER_ID: "105"
+      LOGIN_ID: "10000001"
+      USER_PASSWORD: "otFL835Qy984IrWKA+jEhvH6CGE/woZ8LeLy7iyp8CM="
+      ADMIN_FLAG: "0"
+      USER_ID_LOCKED: "0"
+      PASSWORD_EXPIRATION_DATE: "20170410"
+      FAILED_COUNT: "0"
+      EFFECTIVE_DATE_FROM: "20130802"
+      EFFECTIVE_DATE_TO: "20170404"
+      LAST_LOGIN_DATE_TIME: ""
+      VERSION: "0"
+
+  SETUP_TABLE[1]=USERS: #ListMap
+    - USER_ID: "105"
+      KANJI_NAME: "一般ユーザ１"
+      KANA_NAME: "イッパンイチ"
+
+  SETUP_TABLE[3]=SYSTEM_ACCOUNT: #ListMap
+    - USER_ID: "105"
+      LOGIN_ID: "10000001"
+      USER_PASSWORD: "otFL835Qy984IrWKA+jEhvH6CGE/woZ8LeLy7iyp8CM="
+      ADMIN_FLAG: "0"
+      USER_ID_LOCKED: "1"
+      PASSWORD_EXPIRATION_DATE: "20170410"
+      FAILED_COUNT: "5"
+      EFFECTIVE_DATE_FROM: "20130802"
+      EFFECTIVE_DATE_TO: "20170404"
+      LAST_LOGIN_DATE_TIME: ""
+      VERSION: "0"
+
+  SETUP_TABLE[3]=USERS: #ListMap
+    - USER_ID: "105"
+      KANJI_NAME: "一般ユーザ１"
+      KANA_NAME: "イッパンイチ"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"
+      loginId: "10000001"
+      userPassword: ""
+    - "[no]": "2"
+      loginId: "10000001"
+      userPassword: "pass123"
+    - "[no]": "3"
+      loginId: "10000001"
+      userPassword: "pass123-"
+
+logoutNormal:
+  LIST_MAP=testShots: #ListMap
+    - "no": "1"
+      description: "ログアウト"
+      context: "user"
+      isValidToken: "true"
+      setUpTable: ""
+      expectedStatusCode: "303"
+      expectedMessageId: ""
+      expectedSearch: ""
+      forwardUri: "/action/login"
+
+  LIST_MAP=user: #ListMap
+    - REQUEST_ID: "logout"
+      USER_ID: "105"
+      HTTP_METHOD: "GET"
+
+  LIST_MAP=requestParams: #ListMap
+    - "[no]": "1"

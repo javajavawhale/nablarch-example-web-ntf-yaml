@@ -12,4 +12,17 @@
   <!-- CSRF対策の無効化 -->
   <component name="csrfTokenVerificationHandler" class="nablarch.test.NopHandler" />
 
+  <!-- YAML / Excel 両対応 TestDataReader -->
+  <component name="testDataParser" class="nablarch.test.core.reader.BasicTestDataParser">
+    <property name="testDataReader">
+      <component class="com.nablarch.example.app.test.reader.YamlReader">
+        <property name="delegate">
+          <component name="xlsReaderForPoi" class="nablarch.test.core.reader.PoiXlsReader"/>
+        </property>
+      </component>
+    </property>
+    <property name="dbInfo" ref="dbInfo"/>
+    <property name="interpreters" ref="interpreters"/>
+  </component>
+
 </component-configuration>

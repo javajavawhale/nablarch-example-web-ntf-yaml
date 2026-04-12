@@ -1,8 +1,8 @@
 package com.nablarch.example.app.web.action;
 
+import com.nablarch.example.app.test.http.YamlRestTest;
+import com.nablarch.example.app.test.http.YamlRestTestSupport;
 import nablarch.fw.web.HttpResponse;
-import nablarch.test.core.http.RestTestSupport;
-import nablarch.test.junit5.extension.http.RestTest;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONCompareMode;
@@ -12,9 +12,9 @@ import static org.skyscreamer.jsonassert.JSONAssert.assertEquals;
 /**
  * {@link IndustryAction}のテストクラス
  */
-@RestTest
+@YamlRestTest
 class IndustryActionTest {
-    RestTestSupport support;
+    YamlRestTestSupport support;
 
     @Test
     void testFind() throws JSONException {

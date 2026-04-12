@@ -1,0 +1,258 @@
+package com.nablarch.example.app.test.reader;
+
+import nablarch.test.core.reader.PoiXlsReader;
+import nablarch.test.core.reader.TestDataReader;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+
+import java.io.InputStream;
+import java.util.*;
+
+/**
+ * YAML ファイルからテストデータを読み込む {@link TestDataReader} 実装。
+ *
+ * <p>対象クラスと同名の {@code .ntf.yaml} ファイルがクラスパス上に存在する場合は
+ * YAML から読み込む。存在しない場合は {@link PoiXlsReader} に処理を委譲する。</p>
+ *
+ * <h2>NTF の呼び出し規約</h2>
+ * <ul>
+ *   <li>{@code resourceName} = ソースディレクトリ相対パス（例: {@code src/test/java/com/example/FooTest}）</li>
+ *   <li>{@code dataName} = {@code ClassName/sheetName}（例: {@code FooTest/setUpDb}）</li>
+ * </ul>
+ * <p>YAML ファイルは {@code src/test/resources/{package}/ClassName.ntf.yaml} に配置し、
+ * クラスパスリソースとして参照する。</p>
+ */
+public class YamlReader implements TestDataReader {
+
+    private static final String YAML_EXTENSION = ".ntf.yaml";
+
+    /** ソースディレクトリのプレフィックス（クラスパス変換時に除去） */
+    private static final String[] SOURCE_PREFIXES = {
+            "src/test/java/",
+            "src/main/java/",
+            "src/test/resources/",
+            "src/main/resources/"
+    };
+
+    private List<List<String>> lines;
+    private Iterator<List<String>> iterator;
+    private TestDataReader delegate = new PoiXlsReader();
+    private boolean usingYaml = false;
+
+    /** DI インジェクション用セッター（設定しない場合は new PoiXlsReader() を使用） */
+    public void setDelegate(TestDataReader delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public void open(String resourceName, String dataName) {
+        String yamlResource = resolveYamlClasspath(resourceName, dataName);
+        InputStream is = getClass().getClassLoader().getResourceAsStream(yamlResource);
+        if (is == null) {
+            usingYaml = false;
+            delegate.open(resourceName, dataName);
+            return;
+        }
+        try {
+            String sheetName = extractSheetName(dataName);
+            Map<String, Object> root = loadYaml(is);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> sheetData = (Map<String, Object>) root.get(sheetName);
+            if (sheetData == null) {
+                // YAML ファイルは存在するがこのシートは未移行 → Excel に委譲
+                usingYaml = false;
+                delegate.open(resourceName, dataName);
+                return;
+            }
+            usingYaml = true;
+            lines = convertToLines(sheetData);
+            iterator = lines.iterator();
+        } finally {
+            try { is.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
+    public List<String> readLine() {
+        if (usingYaml) {
+            return (iterator != null && iterator.hasNext()) ? iterator.next() : null;
+        }
+        return delegate.readLine();
+    }
+
+    @Override
+    public void close() {
+        if (usingYaml) {
+            lines = null;
+            iterator = null;
+        } else {
+            delegate.close();
+        }
+    }
+
+    @Override
+    public boolean isResourceExisting(String resourceName, String dataName) {
+        String yamlResource = resolveYamlClasspath(resourceName, dataName);
+        if (getClass().getClassLoader().getResource(yamlResource) != null) {
+            return true;
+        }
+        return delegate.isResourceExisting(resourceName, dataName);
+    }
+
+    @Override
+    public boolean isDataExisting(String resourceName, String dataName) {
+        String yamlResource = resolveYamlClasspath(resourceName, dataName);
+        InputStream is = getClass().getClassLoader().getResourceAsStream(yamlResource);
+        if (is == null) {
+            return delegate.isDataExisting(resourceName, dataName);
+        }
+        try {
+            String sheetName = extractSheetName(dataName);
+            Map<String, Object> root = loadYaml(is);
+            return root.containsKey(sheetName);
+        } finally {
+            try { is.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // private helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * {@code resourceName}（ソースディレクトリ相対パス）と {@code dataName}
+     * （{@code ClassName/sheetName}）からクラスパス上の YAML リソースパスを構築する。
+     *
+     * <pre>
+     * resourceName = "src/test/java/com/example"
+     * dataName     = "FooTest/setUpDb"
+     * → "com/example/FooTest.ntf.yaml"
+     * </pre>
+     */
+    private String resolveYamlClasspath(String resourceName, String dataName) {
+        String classpathDir = stripSourcePrefix(resourceName);
+        String className = extractClassName(dataName);
+        return classpathDir + "/" + className + YAML_EXTENSION;
+    }
+
+    /** {@code src/test/java/} 等のプレフィックスを除去してクラスパス形式のディレクトリを返す */
+    private String stripSourcePrefix(String resourceName) {
+        for (String prefix : SOURCE_PREFIXES) {
+            if (resourceName.startsWith(prefix)) {
+                return resourceName.substring(prefix.length());
+            }
+        }
+        return resourceName;
+    }
+
+    /** {@code dataName} の '/' より前のクラス名部分を返す */
+    private String extractClassName(String dataName) {
+        int slash = dataName.indexOf('/');
+        return (slash >= 0) ? dataName.substring(0, slash) : dataName;
+    }
+
+    /** {@code dataName} の '/' より後のシート名部分を返す */
+    private String extractSheetName(String dataName) {
+        int slash = dataName.lastIndexOf('/');
+        return (slash >= 0) ? dataName.substring(slash + 1) : dataName;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> loadYaml(InputStream is) {
+        LoaderOptions opts = new LoaderOptions();
+        Yaml yaml = new Yaml(new LinkedHashMapConstructor(opts));
+        return (Map<String, Object>) yaml.load(is);
+    }
+
+    /**
+     * YAML シートデータを Excel 相当の行リストに変換する。
+     * 各ブロックにつき: [ブロック名行] → [ヘッダ行] → [データ行...]
+     */
+    @SuppressWarnings("unchecked")
+    private List<List<String>> convertToLines(Map<String, Object> sheetData) {
+        List<List<String>> result = new ArrayList<>();
+        if (sheetData == null) {
+            return result;
+        }
+        for (Map.Entry<String, Object> entry : sheetData.entrySet()) {
+            String blockName = entry.getKey();
+            Object value = entry.getValue();
+
+            result.add(Collections.singletonList(blockName));
+
+            if (value instanceof List) {
+                List<?> outerList = (List<?>) value;
+                if (outerList.isEmpty()) continue;
+                if (outerList.get(0) instanceof List) {
+                    // #RawRows: List<List<Object>> → 行をそのまま出力
+                    // 空セルは PoiXlsReader と同様に null として返す
+                    for (Object rowObj : outerList) {
+                        List<Object> rawRow = (List<Object>) rowObj;
+                        List<String> dataRow = new ArrayList<>();
+                        for (Object cell : rawRow) {
+                            String v = (cell == null) ? null : String.valueOf(cell);
+                            // Keep empty strings as-is; only YAML null should become null.
+                            dataRow.add(v);
+                        }
+                        result.add(dataRow);
+                    }
+                } else {
+                    // #ListMap: List<Map<Object, Object>>
+                    List<Map<Object, Object>> rows = (List<Map<Object, Object>>) value;
+                    // keySet() の要素は SnakeYAML が Boolean 等に型変換する場合があるため
+                    // Object として取り出し String に変換する
+                    List<Object> rawKeys = new ArrayList<>(rows.get(0).keySet());
+                    List<String> headers = new ArrayList<>();
+                    for (Object k : rawKeys) {
+                        headers.add(k == null ? "" : String.valueOf(k));
+                    }
+                    result.add(headers);
+
+                    // 先頭行が全値 null の場合は sentinel 行（列定義のみ）とみなし、
+                    // データ行としては出力しない。値がある行からデータとして扱う。
+                    // NTF の仕様: SETUP_TABLE=X のあと必ずヘッダー行を読む。
+                    //   データ行 0 件 = DELETE のみ (INSERT はスキップ)。
+                    //   EXPECTED_TABLE=X の場合も同様に 0 行 = 対象テーブルが空であること。
+                    boolean firstRowIsSentinel = rows.get(0).values().stream().allMatch(v -> v == null);
+                    int dataStart = firstRowIsSentinel ? 1 : 0;
+                    for (int r = dataStart; r < rows.size(); r++) {
+                        Map<Object, Object> row = rows.get(r);
+                        List<String> dataRow = new ArrayList<>();
+                        for (int i = 0; i < rawKeys.size(); i++) {
+                            Object cell = row.get(rawKeys.get(i));
+                            String v = (cell == null) ? null : String.valueOf(cell);
+                            // Keep empty strings as-is; only YAML null should become null.
+                            dataRow.add(v);
+                        }
+                        result.add(dataRow);
+                    }
+                }
+            } else if (value instanceof Map) {
+                // 後方互換: __columns__ キーのみを持つ旧形式の空テーブル定義
+                Map<String, Object> mapValue = (Map<String, Object>) value;
+                Object colsObj = mapValue.get("__columns__");
+                if (colsObj instanceof List) {
+                    List<Object> colList = (List<Object>) colsObj;
+                    List<String> headers = new ArrayList<>();
+                    for (Object c : colList) {
+                        headers.add(c == null ? "" : String.valueOf(c));
+                    }
+                    result.add(headers);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static class LinkedHashMapConstructor extends Constructor {
+        LinkedHashMapConstructor(LoaderOptions opts) {
+            super(Object.class, opts);
+        }
+
+        @Override
+        protected Map<Object, Object> createDefaultMap(int initSize) {
+            return new LinkedHashMap<>(initSize);
+        }
+    }
+}
