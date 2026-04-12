@@ -6,34 +6,28 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
 /**
  * YAML ファイルからテストデータを読み込む {@link TestDataReader} 実装。
  *
- * <p>対象クラスと同名の {@code .ntf.yaml} ファイルがクラスパス上に存在する場合は
+ * <p>対象クラスと同名の {@code .yaml} ファイルがファイルシステム上に存在する場合は
  * YAML から読み込む。存在しない場合は {@link PoiXlsReader} に処理を委譲する。</p>
  *
  * <h2>NTF の呼び出し規約</h2>
  * <ul>
- *   <li>{@code resourceName} = ソースディレクトリ相対パス（例: {@code src/test/java/com/example/FooTest}）</li>
+ *   <li>{@code resourceName} = ソースディレクトリ相対パス（例: {@code src/test/java/com/example}）</li>
  *   <li>{@code dataName} = {@code ClassName/sheetName}（例: {@code FooTest/setUpDb}）</li>
  * </ul>
- * <p>YAML ファイルは {@code src/test/resources/{package}/ClassName.ntf.yaml} に配置し、
- * クラスパスリソースとして参照する。</p>
+ * <p>YAML ファイルは {@code src/test/java/{package}/ClassName.yaml} に Excel と同ディレクトリで配置する。</p>
  */
 public class YamlReader implements TestDataReader {
 
-    private static final String YAML_EXTENSION = ".ntf.yaml";
-
-    /** ソースディレクトリのプレフィックス（クラスパス変換時に除去） */
-    private static final String[] SOURCE_PREFIXES = {
-            "src/test/java/",
-            "src/main/java/",
-            "src/test/resources/",
-            "src/main/resources/"
-    };
+    private static final String YAML_EXTENSION = ".yaml";
 
     private List<List<String>> lines;
     private Iterator<List<String>> iterator;
@@ -47,14 +41,13 @@ public class YamlReader implements TestDataReader {
 
     @Override
     public void open(String resourceName, String dataName) {
-        String yamlResource = resolveYamlClasspath(resourceName, dataName);
-        InputStream is = getClass().getClassLoader().getResourceAsStream(yamlResource);
-        if (is == null) {
+        File yamlFile = resolveYamlFile(resourceName, dataName);
+        if (!yamlFile.exists()) {
             usingYaml = false;
             delegate.open(resourceName, dataName);
             return;
         }
-        try {
+        try (InputStream is = new FileInputStream(yamlFile)) {
             String sheetName = extractSheetName(dataName);
             Map<String, Object> root = loadYaml(is);
             @SuppressWarnings("unchecked")
@@ -68,8 +61,8 @@ public class YamlReader implements TestDataReader {
             usingYaml = true;
             lines = convertToLines(sheetData);
             iterator = lines.iterator();
-        } finally {
-            try { is.close(); } catch (Exception ignored) {}
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read YAML: " + yamlFile, e);
         }
     }
 
@@ -93,8 +86,7 @@ public class YamlReader implements TestDataReader {
 
     @Override
     public boolean isResourceExisting(String resourceName, String dataName) {
-        String yamlResource = resolveYamlClasspath(resourceName, dataName);
-        if (getClass().getClassLoader().getResource(yamlResource) != null) {
+        if (resolveYamlFile(resourceName, dataName).exists()) {
             return true;
         }
         return delegate.isResourceExisting(resourceName, dataName);
@@ -102,17 +94,16 @@ public class YamlReader implements TestDataReader {
 
     @Override
     public boolean isDataExisting(String resourceName, String dataName) {
-        String yamlResource = resolveYamlClasspath(resourceName, dataName);
-        InputStream is = getClass().getClassLoader().getResourceAsStream(yamlResource);
-        if (is == null) {
+        File yamlFile = resolveYamlFile(resourceName, dataName);
+        if (!yamlFile.exists()) {
             return delegate.isDataExisting(resourceName, dataName);
         }
-        try {
+        try (InputStream is = new FileInputStream(yamlFile)) {
             String sheetName = extractSheetName(dataName);
             Map<String, Object> root = loadYaml(is);
             return root.containsKey(sheetName);
-        } finally {
-            try { is.close(); } catch (Exception ignored) {}
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read YAML: " + yamlFile, e);
         }
     }
 
@@ -122,28 +113,17 @@ public class YamlReader implements TestDataReader {
 
     /**
      * {@code resourceName}（ソースディレクトリ相対パス）と {@code dataName}
-     * （{@code ClassName/sheetName}）からクラスパス上の YAML リソースパスを構築する。
+     * （{@code ClassName/sheetName}）から YAML ファイルを返す。
      *
      * <pre>
      * resourceName = "src/test/java/com/example"
      * dataName     = "FooTest/setUpDb"
-     * → "com/example/FooTest.ntf.yaml"
+     * → new File("src/test/java/com/example/FooTest.yaml")
      * </pre>
      */
-    private String resolveYamlClasspath(String resourceName, String dataName) {
-        String classpathDir = stripSourcePrefix(resourceName);
+    private File resolveYamlFile(String resourceName, String dataName) {
         String className = extractClassName(dataName);
-        return classpathDir + "/" + className + YAML_EXTENSION;
-    }
-
-    /** {@code src/test/java/} 等のプレフィックスを除去してクラスパス形式のディレクトリを返す */
-    private String stripSourcePrefix(String resourceName) {
-        for (String prefix : SOURCE_PREFIXES) {
-            if (resourceName.startsWith(prefix)) {
-                return resourceName.substring(prefix.length());
-            }
-        }
-        return resourceName;
+        return new File(resourceName + "/" + className + YAML_EXTENSION);
     }
 
     /** {@code dataName} の '/' より前のクラス名部分を返す */

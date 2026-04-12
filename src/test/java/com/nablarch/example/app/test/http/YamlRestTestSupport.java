@@ -4,6 +4,9 @@ import nablarch.test.core.http.RestTestSupport;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
@@ -22,7 +25,7 @@ import java.util.Map;
  */
 public class YamlRestTestSupport extends RestTestSupport {
 
-    private static final String YAML_EXTENSION = ".ntf.yaml";
+    private static final String YAML_EXTENSION = ".yaml";
 
     public YamlRestTestSupport(Class<?> testClass) {
         super(testClass);
@@ -37,24 +40,24 @@ public class YamlRestTestSupport extends RestTestSupport {
     @Override
     protected void setUpDbIfSheetExists(String sheetName) {
         String packagePath = testDescription.getTestClass().getPackage().getName().replace('.', '/');
-        String yamlClasspath = packagePath + "/" + testDescription.getTestClassSimpleName() + YAML_EXTENSION;
+        String className = testDescription.getTestClassSimpleName();
+        File yamlFile = new File("src/test/java/" + packagePath + "/" + className + YAML_EXTENSION);
 
-        InputStream is = getClass().getClassLoader().getResourceAsStream(yamlClasspath);
-        if (is == null) {
+        if (!yamlFile.exists()) {
             // YAML なし → 親クラス（Excel ベース）に委譲
             super.setUpDbIfSheetExists(sheetName);
             return;
         }
 
-        try {
+        try (InputStream is = new FileInputStream(yamlFile)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> root = (Map<String, Object>) new Yaml(new LoaderOptions()).load(is);
             if (root != null && root.containsKey(sheetName)) {
                 setUpDb(sheetName);
             }
             // シートなし → スキップ（親クラスの isExisting()=false と同等）
-        } finally {
-            try { is.close(); } catch (Exception ignored) {}
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read YAML: " + yamlFile, e);
         }
     }
 }
