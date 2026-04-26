@@ -3,10 +3,10 @@ nablarch-example-web
 
 > **このリポジトリは [nablarch/nablarch-example-web](https://github.com/nablarch/nablarch-example-web) のフォークです。**
 >
-> **目的:** Nablarch Testing Framework (NTF) のテストデータファイルを Excel (.xlsx/.xls) から YAML (.ntf.yaml) へ移行する PoC。
+> **目的:** Nablarch Testing Framework (NTF) のテストデータファイルを Excel (.xlsx/.xls) から YAML (.yaml) へ移行する PoC。
 >
 > **主な変更内容:**
-> - 全テストデータファイル (`.xlsx` / `.xls`) を `.ntf.yaml` に変換・置き換え
+> - 全テストデータファイル (`.xlsx` / `.xls`) を `.yaml` に変換・置き換え
 > - `YamlReader` を追加（NTF の `testDataParser` 経由で YAML を読み込む）
 > - `YamlRestTestSupport` / `YamlRestTest` を追加（`RestTestSupport` ベースのテストで YAML を使えるよう拡張）
 
