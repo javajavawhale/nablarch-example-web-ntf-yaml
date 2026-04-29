@@ -8,6 +8,7 @@ nablarch-example-web
 > **主な変更内容:**
 > - 全テストデータファイル (`.xlsx` / `.xls`) を `.yaml` に変換・置き換え
 > - `YamlReader` を追加（NTF の `testDataParser` 経由で YAML を読み込む）
+> - `override_test.xml` で `testDataParser` をオーバーライドし、YAML / Excel 両対応に
 > - `YamlRestTestSupport` / `YamlRestTest` を追加（`RestTestSupport` ベースのテストで YAML を使えるよう拡張）
 
 Nablarchアプリケーションフレームワークを利用して作成したウェブExampleアプリケーションです。
